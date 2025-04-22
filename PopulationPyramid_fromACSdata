@@ -1,0 +1,102 @@
+var portal = Portal('https://arcgis.com')
+
+// get data
+var fs = FeatureSetByPortalItem(
+    portal,
+    'eac8a86581d249c3844fd2303f3b15ee',
+    0,
+    [
+        'GEOID',
+        'male_00to05',
+        'male_05to9',
+        'male_10to14',
+'male_15to19',
+'male_20to24',
+'male_25to29',
+'male_30to34',
+'male_35to39',
+'male_40to44',
+'male_45to49',
+'male_50to54',
+'male_55to59',
+'male_60to64',
+'male_65to69',
+'male_70to74',
+'male_75to79',
+'male_80to84',
+'male_85up',
+'female_00to05',
+'female_05to9',
+'female_10to14',
+'female_15to19',
+'female_20to24',
+'female_25to29',
+'female_30to34',
+'female_35to39',
+'female_40to44',
+'female_45to49',
+'female_50to54',
+'female_55to59',
+'female_60to64',
+'female_65to69',
+'female_70to74',
+'female_75to79',
+'female_80to84',
+'female_85up',
+    ],
+    false
+)
+
+// create dict to hold output features
+var out_dict = {
+    fields: [
+        {name: 'GEOID', type: 'esriFieldTypeString'},
+        {name: 'age_range', alias: 'Age Range', type: 'esriFieldTypeString'},
+        {name: 'gender', alias: 'Gender', type: 'esriFieldTypeString'},
+        {name: 'population', alias: 'Population', type: 'esriFieldTypeInteger'},
+        {name: 'age_number', alias: 'Age Number', type: 'esriFieldTypeInteger'}
+    ],
+    geometryType: '',
+    features: []
+}
+
+// custom function to derive age range and gender for attribute name, then push to array
+function BreakoutAges(feat){
+    for (var att in feat){
+        
+        Console(`Checking attribute ${att}`)
+        
+        // skip attribute if not a population field
+        If (Includes(['GEOID','fid'], att)){
+            continue
+        }
+        
+        // check gender
+        var gender = Iif(Left(att, 4) == 'male', 'Male', 'Female')
+
+        // strip 'Male_', 'Female_' off of attribute name
+        var age_range = Replace(Replace(att, 'male_', ''), 'fe', '')
+        
+
+        Push(
+            out_dict['features'],
+            {
+                attributes: {
+                    GEOID10: feat['GEOID'],
+                    age_range: age_range,
+                    gender: gender,
+                    population: Iif(gender == 'Male', feat[att] * -1, feat[att])
+                }
+            }
+        )
+    }
+}
+
+// iterate over features
+for (var f in fs){
+    
+    BreakoutAges(f)
+
+}
+
+return FeatureSet(Text(out_dict))
